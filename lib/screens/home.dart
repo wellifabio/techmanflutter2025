@@ -11,9 +11,14 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
+  final String api = 'https://techman-api-2025.vercel.app';
+
+  Future<void> listarEquipamentos() async {}
+
   Future<void> sair() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('user_data');
+    await prefs.remove('user_perfil');
     if (mounted) {
       Navigator.pushReplacement(
         context,

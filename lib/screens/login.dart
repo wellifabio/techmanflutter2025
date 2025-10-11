@@ -14,7 +14,7 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> {
-  final String api = 'https://techman-api-2025.vercel.app/login';
+  final String api = 'https://techman-api-2025.vercel.app';
   final ButtonStyle buttonStyle = ElevatedButton.styleFrom(
     backgroundColor: AppColors.c2,
     foregroundColor: AppColors.c6,
@@ -46,7 +46,7 @@ class _LoginState extends State<Login> {
   }
 
   Future<void> sendLogin() async {
-    final url = Uri.parse(api);
+    final url = Uri.parse('$api/login');
     try {
       final response = await http.post(
         url,
@@ -61,13 +61,20 @@ class _LoginState extends State<Login> {
             backgroundColor: AppColors.c1,
             title: Text('Bem vindo(a)', style: TextStyle(color: AppColors.c5)),
             content: Text(
-              data['perfil'] == '1' ? 'Comum' : 'Admin',
+              data['perfil'] == 1 ? 'Comum' : 'Admin',
               style: TextStyle(color: AppColors.c6),
             ),
             actions: [
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop();
+                  final Map<String, dynamic> perfilData = json.decode(
+                    response.body,
+                  );
+                  final perfil = perfilData['perfil'];
+                  SharedPreferences.getInstance().then((prefs) {
+                    prefs.setInt('user_perfil', perfil);
+                  });
                   toHome(response.body);
                 },
                 child: Text('OK', style: TextStyle(color: AppColors.c6)),
