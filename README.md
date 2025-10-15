@@ -39,3 +39,5 @@ flutter run
 |![Screenshot 02](./assets/screenshot02.png)|
 |Obs: Como perfil comum é possível ver a lista de equipamentos e ver e adicionar comentários, com o perfil de Administrador é possível também excluir e adicionar novos equipamentos, além das funcionalidades do perfil comum|
 |![Screenshot 03](./assets/screenshot03.png)|
+
+- Caro deseje instalar a versão de testes no seu celular Android, hebilite a opção de desenvolvedor e baixe o [apk](./app-release.apk) de testes, por sua conta e risco. Não me resposabilizo por danos causados ao seu aparelho de celular android.
