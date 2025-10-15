@@ -3,6 +3,7 @@ import 'package:techmanflutter2025/screens/_core/app_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:intl/intl.dart';
 import 'login.dart';
 
 class Home extends StatefulWidget {
@@ -87,11 +88,31 @@ class _HomeState extends State<Home> {
                                 final c = comentarios[index];
                                 final perf = c['perfil'] ?? '';
                                 final comentario = c['comentario'] ?? '';
+                                final rawData = c['data'];
+                                String data;
+                                try {
+                                  if (rawData == null) {
+                                    data = '';
+                                  } else {
+                                    // tenta parsear como ISO8601 e formatar para pt-BR
+                                    final dt = DateTime.parse(
+                                      rawData.toString(),
+                                    );
+                                    data = DateFormat(
+                                      'dd/MM/yyyy HH:mm',
+                                    ).format(dt.toLocal());
+                                  }
+                                } catch (e) {
+                                  // se falhar, mostra o valor cru
+                                  data = rawData?.toString() ?? '';
+                                }
                                 return ListTile(
                                   title: perf != 2
                                       ? Text('Perfil comum')
                                       : Text('Perfil admin'),
-                                  subtitle: Text(comentario.toString()),
+                                  subtitle: Text(
+                                    'Texto: $comentario\nData: $data',
+                                  ),
                                 );
                               },
                             ),
@@ -123,6 +144,7 @@ class _HomeState extends State<Home> {
                                 comentarios.add({
                                   'perfil': perfil,
                                   'comentario': texto,
+                                  'data': 'agora',
                                 });
                                 _controller.clear();
                               });
@@ -246,6 +268,125 @@ class _HomeState extends State<Home> {
     }
   }
 
+  Future<void> novoEquipamento() async {
+    final _formKey = GlobalKey<FormState>();
+    final TextEditingController equipamentoCtrl = TextEditingController();
+    final TextEditingController imagemCtrl = TextEditingController();
+    final TextEditingController descricaoCtrl = TextEditingController();
+    bool ativo = true;
+
+    if (!mounted) return;
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateSB) {
+          return AlertDialog(
+            title: const Text('Novo equipamento'),
+            content: SingleChildScrollView(
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: equipamentoCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Equipamento',
+                      ),
+                      validator: (v) => v == null || v.trim().isEmpty
+                          ? 'Informe o nome'
+                          : null,
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: imagemCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'URL da imagem',
+                      ),
+                      validator: (v) => v == null || v.trim().isEmpty
+                          ? 'Informe a URL'
+                          : null,
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: descricaoCtrl,
+                      decoration: const InputDecoration(labelText: 'Descrição'),
+                      minLines: 2,
+                      maxLines: 4,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: ativo,
+                          onChanged: (v) => setStateSB(() => ativo = v ?? true),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text('Ativo'),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  if (!_formKey.currentState!.validate()) return;
+                  final payload = json.encode({
+                    'equipamento': equipamentoCtrl.text.trim(),
+                    'imagem': imagemCtrl.text.trim(),
+                    'descricao': descricaoCtrl.text.trim(),
+                    'ativo': ativo ? 1 : 0,
+                  });
+                  try {
+                    final url = Uri.parse('$api/equipamento');
+                    final resp = await http.post(
+                      url,
+                      headers: {'Content-Type': 'application/json'},
+                      body: payload,
+                    );
+                    if (resp.statusCode == 200 || resp.statusCode == 201) {
+                      Navigator.of(context).pop();
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Equipamento criado com sucesso'),
+                          ),
+                        );
+                        await listarEquipamentos();
+                      }
+                    } else {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Erro: ${resp.statusCode}')),
+                        );
+                      }
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Falha ao conectar com a API'),
+                        ),
+                      );
+                    }
+                  }
+                },
+                child: const Text('Salvar'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -253,6 +394,18 @@ class _HomeState extends State<Home> {
         title: Image.asset('assets/techman.png', width: 120, height: 60),
         backgroundColor: AppColors.c5,
         actions: [
+          if (perfil == 2)
+            IconButton(
+              onPressed: () => novoEquipamento(),
+              icon: Text(
+                'Novo equipamento',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.c3,
+                ),
+              ),
+              tooltip: 'Novo',
+            ),
           IconButton(
             onPressed: () => sair(),
             icon: Image.asset('assets/logout_sair.png', width: 28, height: 28),
@@ -320,45 +473,48 @@ class _HomeState extends State<Home> {
                                     ),
                                     tooltip: 'Comentários',
                                   ),
-                                  IconButton(
-                                    onPressed: () async {
-                                      // confirmar exclusão
-                                      final confirm = await showDialog<bool>(
-                                        context: context,
-                                        builder: (context) => AlertDialog(
-                                          title: const Text('Confirmar'),
-                                          content: const Text(
-                                            'Deseja deletar este equipamento?',
+                                  // Mostrar botão de deletar apenas para perfil administrador (2)
+                                  if (perfil == 2) ...[
+                                    IconButton(
+                                      onPressed: () async {
+                                        // confirmar exclusão
+                                        final confirm = await showDialog<bool>(
+                                          context: context,
+                                          builder: (context) => AlertDialog(
+                                            title: const Text('Confirmar'),
+                                            content: const Text(
+                                              'Deseja deletar este equipamento?',
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () => Navigator.of(
+                                                  context,
+                                                ).pop(false),
+                                                child: const Text('Não'),
+                                              ),
+                                              TextButton(
+                                                onPressed: () => Navigator.of(
+                                                  context,
+                                                ).pop(true),
+                                                child: const Text('Sim'),
+                                              ),
+                                            ],
                                           ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () => Navigator.of(
-                                                context,
-                                              ).pop(false),
-                                              child: const Text('Não'),
-                                            ),
-                                            TextButton(
-                                              onPressed: () => Navigator.of(
-                                                context,
-                                              ).pop(true),
-                                              child: const Text('Sim'),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                      if (confirm == true) {
-                                        await _deletarEquipamento(
-                                          item['id'].toString(),
                                         );
-                                      }
-                                    },
-                                    icon: Image.asset(
-                                      'assets/deletar.png',
-                                      width: 28,
-                                      height: 28,
+                                        if (confirm == true) {
+                                          await _deletarEquipamento(
+                                            item['id'].toString(),
+                                          );
+                                        }
+                                      },
+                                      icon: Image.asset(
+                                        'assets/deletar.png',
+                                        width: 28,
+                                        height: 28,
+                                      ),
+                                      tooltip: 'Deletar',
                                     ),
-                                    tooltip: 'Deletar',
-                                  ),
+                                  ],
                                 ],
                               ),
                             ],
