@@ -24,6 +24,24 @@ class _LoginState extends State<Login> {
 
   String senha = '';
 
+  @override
+  void initState() {
+    super.initState();
+    _conferePerfilSalvo();
+  }
+
+  Future<void> _conferePerfilSalvo() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.containsKey('user_perfil')) {
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const Home()),
+        );
+      }
+    }
+  }
+
   void pressButton(String num) {
     setState(() {
       if (num == 'C') {
@@ -61,7 +79,7 @@ class _LoginState extends State<Login> {
             backgroundColor: AppColors.c1,
             title: Text('Bem vindo(a)', style: TextStyle(color: AppColors.c5)),
             content: Text(
-              data['perfil'] == 1 ? 'Comum' : 'Admin',
+              data['perfil'] != 2 ? 'Perfil comum!' : 'Perfil admin!',
               style: TextStyle(color: AppColors.c6),
             ),
             actions: [

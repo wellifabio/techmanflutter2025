@@ -14,22 +14,14 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   final String api = 'https://techman-api-2025.vercel.app';
-  Map<String, dynamic> perfil = {};
-  // listarEquipamentos implementada abaixo
   List<dynamic> equipamentos = [];
   bool carregando = true;
+  int? perfil;
 
   @override
   void initState() {
     super.initState();
     listarEquipamentos();
-    obterPerfil();
-  }
-
-  Future<void> obterPerfil() async {
-    perfil =
-        (await SharedPreferences.getInstance()).getInt('perfil')
-            as Map<String, dynamic>;
   }
 
   Future<void> listarEquipamentos() async {
@@ -37,6 +29,12 @@ class _HomeState extends State<Home> {
       carregando = true;
     });
     try {
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.containsKey('user_perfil')) {
+        setState(() {
+          perfil = prefs.getInt('user_perfil');
+        });
+      }
       final url = Uri.parse('$api/equipamento');
       final response = await http.get(url);
       if (response.statusCode == 200) {
@@ -87,10 +85,12 @@ class _HomeState extends State<Home> {
                               itemCount: comentarios.length,
                               itemBuilder: (context, index) {
                                 final c = comentarios[index];
-                                final perfil = c['perfil'] ?? '';
+                                final perf = c['perfil'] ?? '';
                                 final comentario = c['comentario'] ?? '';
                                 return ListTile(
-                                  title: Text(perfil.toString()),
+                                  title: perf != 2
+                                      ? Text('Perfil comum')
+                                      : Text('Perfil admin'),
                                   subtitle: Text(comentario.toString()),
                                 );
                               },
@@ -119,10 +119,9 @@ class _HomeState extends State<Home> {
                               texto,
                             );
                             if (ok) {
-                              // atualiza a lista localmente
                               setStateSB(() {
                                 comentarios.add({
-                                  'perfil': 1,
+                                  'perfil': perfil,
                                   'comentario': texto,
                                 });
                                 _controller.clear();
@@ -171,7 +170,7 @@ class _HomeState extends State<Home> {
       final body = json.encode({
         'equipamento': equipamentoParsed,
         'comentario': comentario,
-        'perfil': perfil['perfil'] ?? 1,
+        'perfil': 1,
       });
       final response = await http.post(
         url,
@@ -202,7 +201,7 @@ class _HomeState extends State<Home> {
 
   Widget _buildImageWidget(String imagem) {
     final img = imagem.toString().trim();
-    const double w = 180, h = 180;
+    const double w = 300, h = 300;
     if (img.isEmpty) {
       return Container(width: w, height: h, color: Colors.grey[300]);
     }
@@ -280,12 +279,12 @@ class _HomeState extends State<Home> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildImageWidget(imagem),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              _buildImageWidget(imagem),
                               Text(
                                 equipamento,
                                 style: const TextStyle(
@@ -294,7 +293,13 @@ class _HomeState extends State<Home> {
                                 ),
                               ),
                               const SizedBox(height: 6),
-                              Text(descricao),
+                              Text(
+                                descricao,
+                                style: const TextStyle(
+                                  fontStyle: FontStyle.italic,
+                                ),
+                                textAlign: TextAlign.justify,
+                              ),
                               const SizedBox(height: 6),
                               Text(
                                 data,
