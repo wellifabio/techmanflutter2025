@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:techmanflutter2025/api.dart';
 import 'package:techmanflutter2025/screens/_core/app_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
@@ -14,7 +15,6 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> {
-  final String api = 'https://techman-api-2025.vercel.app';
   final ButtonStyle buttonStyle = ElevatedButton.styleFrom(
     backgroundColor: AppColors.c2,
     foregroundColor: AppColors.c6,
@@ -64,7 +64,7 @@ class _LoginState extends State<Login> {
   }
 
   Future<void> sendLogin() async {
-    final url = Uri.parse('$api/login');
+    final url = Uri.parse('${Api.getEndPoint('login')}');
     try {
       final response = await http.post(
         url,

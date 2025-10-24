@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:techmanflutter2025/api.dart';
 import 'package:techmanflutter2025/screens/_core/app_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -14,7 +15,6 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  final String api = 'https://techman-api-2025.vercel.app';
   List<dynamic> equipamentos = [];
   bool carregando = true;
   int? perfil;
@@ -36,7 +36,7 @@ class _HomeState extends State<Home> {
           perfil = prefs.getInt('user_perfil');
         });
       }
-      final url = Uri.parse('$api/equipamento');
+      final url = Uri.parse('${Api.getEndPoint('equipamento')}');
       final response = await http.get(url);
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
@@ -62,7 +62,9 @@ class _HomeState extends State<Home> {
 
   Future<void> _mostrarComentarios(String equipamentoId) async {
     try {
-      final url = Uri.parse('$api/comentario/equipamento/$equipamentoId');
+      final url = Uri.parse(
+        '${Api.getEndPoint('comentario/equipamento/$equipamentoId')}',
+      );
       final response = await http.get(url);
       if (response.statusCode == 200) {
         final List<dynamic> comentarios = json.decode(response.body);
@@ -187,7 +189,7 @@ class _HomeState extends State<Home> {
     String comentario,
   ) async {
     try {
-      final url = Uri.parse('$api/comentario');
+      final url = Uri.parse('${Api.getEndPoint('comentario')}');
       final equipamentoParsed = int.tryParse(equipamentoId) ?? equipamentoId;
       final body = json.encode({
         'equipamento': equipamentoParsed,
@@ -209,7 +211,7 @@ class _HomeState extends State<Home> {
 
   Future<void> _deletarEquipamento(String equipamentoId) async {
     try {
-      final url = Uri.parse('$api/equipamento/$equipamentoId');
+      final url = Uri.parse('${Api.getEndPoint('equipamento/$equipamentoId')}');
       final response = await http.delete(url);
       if (response.statusCode == 200 || response.statusCode == 204) {
         await listarEquipamentos();
@@ -345,7 +347,7 @@ class _HomeState extends State<Home> {
                     'ativo': ativo ? 1 : 0,
                   });
                   try {
-                    final url = Uri.parse('$api/equipamento');
+                    final url = Uri.parse('${Api.getEndPoint('equipamento')}');
                     final resp = await http.post(
                       url,
                       headers: {'Content-Type': 'application/json'},
